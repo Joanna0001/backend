@@ -36,6 +36,15 @@ module.exports = {
       warnings: false,
       errors: true
     },
+    proxy: {
+      [process.env.VUE_APP_BASE_API]: {
+        target: `http://192.168.3.102:2021/:${port}/mock`,
+        changeOrigin: true,
+        pathRewrite: {
+          ['^' + process.env.VUE_APP_BASE_API]: ''
+        }
+      }
+    },
     before: require('./mock/mock-server.js')
   },
   configureWebpack: {
@@ -124,5 +133,10 @@ module.exports = {
           config.optimization.runtimeChunk('single')
         }
       )
+  },
+  devServer: {
+    open: true,
+    // proxy: 'http://192.168.3.102:2021'
+    proxy: 'http://118.178.120.218:8088'
   }
 }

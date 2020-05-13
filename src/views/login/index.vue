@@ -1,220 +1,336 @@
 <template>
-  <div class="login-container">
-    <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on" label-position="left">
+  <div class="dashboard-container">
+    <div style="margin-bottom: 15px;">
+      <el-button size="mini" type="primary" @click="createItem" :disabled="readonly == 1">新增</el-button>
+    </div>
+    <el-table
+      :data="tableData"
+      style="width: 100%"
+      border
+      v-loading="loading"
+      :header-cell-style="{background:'#eef1f6',color:'#606266'}"
+      size="mini"
+    >
+      <el-table-column type="index" label="序号" width="60" align="center"></el-table-column>
+      <el-table-column header-align="center" label="内容" align="left">
+        <template slot-scope="scope">
+          <el-input size="mini" v-model="scope.row.bz" :disabled="readonly == 1" />
+        </template>
+      </el-table-column>
+      <el-table-column label="原件" align="center" width="130">
+        <template slot-scope="scope">
+          <el-input type="number" size="mini" v-model="scope.row.yj" :disabled="readonly == 1" />
+        </template>
+      </el-table-column>
+      <el-table-column label="复印件" align="center" width="130">
+        <template slot-scope="scope">
+          <el-input type="number" size="mini" v-model="scope.row.fyj" :disabled="readonly == 1" />
+        </template>
+      </el-table-column>
+      <el-table-column label="拍照" width="90" align="center">
+        <template slot-scope="scope">
+          <el-button size="mini" type="text" @click="openMedia(scope.row.fj)">拍照</el-button>
+        </template>
+      </el-table-column>
+      <el-table-column label="选择文件" align="center" width="100">
+        <template slot-scope="scope">
+          <el-upload
+            class="upload-demo"
+            :action="fileUrl()"
+            :on-success="uploadSuccess"
+            :on-remove="removeFile"
+          >
+            <el-button size="mini" type="text" :disabled="readonly == 1">选择文件</el-button>
+          </el-upload>
+          <!-- <ul class="upload-file" v-for="(item, index) in scope.row.fj.split('|')" :key="index">
+            <li style="line-height: 15px; display: flex; justify-content: space-around; align-items: center;">
+              <span>{{ item.split(',')[1] }}</span>
+              <i @click="deleteFile(index)" v-if="item" class="el-icon-close" style="font-size: 9px;" />
+            </li>
+          </ul> -->
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="170" align="center">
+        <template slot-scope="scope">
+          <el-button type="primary" size="mini" plain @click="saveHandle(scope.row)" :disabled="readonly == 1">保存</el-button>
+          <el-button type="danger" size="mini" plain @click="deleteHandle(scope.row, scope.$index)" :disabled="readonly == 1">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
 
-      <div class="title-container">
-        <h3 class="title">Login Form</h3>
-      </div>
+    <div class="pagination-container">
+      <el-pagination
+        :current-page="listQuery.page"
+        :page-size="listQuery.rows"
+        :total="total"
+        align="center"
+        background
+        layout="total, prev, pager, next, jumper"
+        @current-change="currentChange"
+      />
+    </div>
 
-      <el-form-item prop="username">
-        <span class="svg-container">
-          <svg-icon icon-class="user" />
-        </span>
-        <el-input
-          ref="username"
-          v-model="loginForm.username"
-          placeholder="Username"
-          name="username"
-          type="text"
-          tabindex="1"
-          auto-complete="on"
-        />
-      </el-form-item>
-
-      <el-form-item prop="password">
-        <span class="svg-container">
-          <svg-icon icon-class="password" />
-        </span>
-        <el-input
-          :key="passwordType"
-          ref="password"
-          v-model="loginForm.password"
-          :type="passwordType"
-          placeholder="Password"
-          name="password"
-          tabindex="2"
-          auto-complete="on"
-          @keyup.enter.native="handleLogin"
-        />
-        <span class="show-pwd" @click="showPwd">
-          <svg-icon :icon-class="passwordType === 'password' ? 'eye' : 'eye-open'" />
-        </span>
-      </el-form-item>
-
-      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
-
-    </el-form>
+    <el-dialog :visible.sync="dialogVisible" width="80%" :before-close="handleClose">
+      <take-photo :initImage="initImage" class="photo" ref="photo"></take-photo>
+      <span
+        slot="footer"
+        class="dialog-footer"
+        style="display: flex; justify-content: space-around;"
+      >
+        <div style="text-align: center;">
+          <el-button size="mini" type="primary" @click="handleTakePhoto" :disabled="readonly == 1">拍照</el-button>
+        </div>
+        <el-button type="primary" @click="uploadImage" size="mini" :disabled="readonly == 1">确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
+import TakePhoto from "./take-photo";
+import { getList, deleteItem, updateItem } from "@/api/table";
 
 export default {
-  name: 'Login',
-  data() {
-    const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
-      } else {
-        callback()
-      }
-    }
-    const validatePassword = (rule, value, callback) => {
-      if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
-      } else {
-        callback()
-      }
-    }
-    return {
-      loginForm: {
-        username: 'admin',
-        password: '111111'
-      },
-      loginRules: {
-        username: [{ required: true, trigger: 'blur', validator: validateUsername }],
-        password: [{ required: true, trigger: 'blur', validator: validatePassword }]
-      },
-      loading: false,
-      passwordType: 'password',
-      redirect: undefined
-    }
+  name: "Dashboard",
+  components: {
+    TakePhoto
   },
-  watch: {
-    $route: {
-      handler: function(route) {
-        this.redirect = route.query && route.query.redirect
+  data() {
+    return {
+      initImage: [],
+      fileList: [],
+      loading: true,
+      dialogVisible: false,
+      total: 0,
+      listQuery: {
+        page: 1,
+        rows: 10,
+        fxbaid: '',
+        serialno: ''
       },
-      immediate: true
-    }
+      statusMsg: "拍照",
+      status: 1,
+      tableData: [],
+      readonly: 1  // 只读1
+    };
+  },
+  created() {
+    // console.log(this.$route)
+    var path = '/index.html?readonly=0&fxbaid=dc85adf45dfc4894a97de4bf16c5ce29&serialno=20200513001&typebh='
+    var pathArr = path.split('&')
+    // console.log(path.split('&'))
+    this.readonly = pathArr[0].split('=')[1]
+    this.listQuery[pathArr[1].split('=')[0]] = pathArr[1].split('=')[1]
+    this.listQuery[pathArr[2].split('=')[0]] = pathArr[2].split('=')[1]
+    // console.log(this.listQuery)
+    this.fetchData();
   },
   methods: {
-    showPwd() {
-      if (this.passwordType === 'password') {
-        this.passwordType = ''
-      } else {
-        this.passwordType = 'password'
-      }
-      this.$nextTick(() => {
-        this.$refs.password.focus()
+    deleteFile(val){
+
+    },
+    createItem(){
+      this.tableData.push({
+        bz: "",
+        fj: "",
+        fyj: "",
+        yj: ""
       })
     },
-    handleLogin() {
-      this.$refs.loginForm.validate(valid => {
-        if (valid) {
-          this.loading = true
-          this.$store.dispatch('user/login', this.loginForm).then(() => {
-            this.$router.push({ path: this.redirect || '/' })
-            this.loading = false
-          }).catch(() => {
-            this.loading = false
-          })
-        } else {
-          console.log('error submit!!')
-          return false
+    fetchData() {
+      getList(this.listQuery).then(res => {
+        this.loading = false
+        this.total = res.total
+        this.tableData = res.rows
+      });
+    },
+    saveHandle(val){
+      var sendData = {}
+      if(val.recid){  // 修改
+        sendData = {
+          fxbaid: val.fxbaid,
+          serialno: val.serialno,
+          id: val.recid,
+          lrrxm: val.lrrxm,
+          lrrzh: val.lrrzh,
+          lrsj: val.lrsj,
+          rowstat: val.rowstat,
+          bz: val.bz,
+          yj: val.yj,
+          fyj: val.fyj
+        }
+      }else{  // 新增
+        sendData = {
+          serialno: this.listQuery.serialno,
+          fxbaid: this.listQuery.fxbaid,
+          bz: val.bz,
+          yj: val.yj,
+          fyj: val.fyj
+        }
+      }
+
+      var fileTemp = []
+      this.fileList.forEach(item => {
+        fileTemp.push(item.fileid + "," + item.filename)
+      })
+      sendData.fj = fileTemp.join('|')
+
+      console.log(sendData)
+      updateItem(sendData).then(res => { // 新增或则修改（id不传是新增，传了是修改）
+        if(res.code == 0){
+          this.$message.success('保存成功')
+          this.fetchData()
+        }else{
+          this.$message.error(res.msg)
         }
       })
+    },
+    deleteHandle(val, index){
+      if(val.recid){
+        var sendData = {
+          bz: val.bz,  //
+          fj: val.fj,  //
+          fxbaid: val.fxbaid,
+          fyj: val.fyj,  // 
+          lrrxm: val.lrrxm,
+          lrrzh: val.lrrzh,
+          lrsj: val.lrsj,
+          id: val.recid,
+          rowstat: val.rowstat,
+          serialno: val.serialno,
+          yj: val.yj  // 
+        }
+        deleteItem(sendData).then(res => {
+          if(res.code == 0){
+            this.fetchData()
+            this.$message.success('删除成功')
+          }else{
+            this.$message.error(res.msg)
+          }
+        })
+      }else{
+        this.tableData.splice(index, 1)
+      }
+    },
+    uploadSuccess(file, fileList) {
+      console.log(file)
+      this.fileList.push(file);
+    },
+    removeFile(file, fileList){
+      this.fileList = fileList;
+    },
+    openMedia(val) {
+      this.dialogVisible = true;
+      this.initImage = val
+      setTimeout(this.handleTakePhoto, 100);
+    },
+    handleTakePhoto() {
+      if (this.status === 1) {
+        // 初始化摄像头
+        this.statusMsg = "查找设备中...";
+        this.$refs.photo.init(res => {
+          if (res) {
+            this.status = 2;
+            this.statusMsg = "拍照";
+          } else {
+            alert("未发现设备");
+          }
+        }); // 初始化摄像头
+      } else if (this.status === 2) {
+        // 拍照
+        this.$refs.photo.takePhoto((res, img) => {
+          if (res) {
+            // this.status = 3;
+            // console.log(img);
+            this.statusMsg = "重新拍";
+          }
+        });
+      } else if (this.status === 3) {
+        // 重新拍
+        this.$refs.photo.init(res => {
+          if (res) {
+            this.status = 2;
+            this.statusMsg = "拍照";
+          } else {
+            alert("未发现设备");
+          }
+        }); // 初始化摄像头
+      }
+    },
+    uploadImage(){
+      this.dialogVisible = false
+      this.$refs.photo.submitImage()
+    },
+    handleClose(done) {
+      this.status = 1
+      this.$refs.photo.closeMedia();
+      done();
+    },
+    currentChange(val) {
+      this.listQuery.page = val;
+      this.fetchData();
+    },
+    fileUrl() {
+      return `/DataInput/FileService?method=UploadFile&type=`;
     }
   }
-}
+};
 </script>
 
-<style lang="scss">
-/* 修复input 背景不协调 和光标变色 */
-/* Detail see https://github.com/PanJiaChen/vue-element-admin/pull/927 */
-
-$bg:#283443;
-$light_gray:#fff;
-$cursor: #fff;
-
-@supports (-webkit-mask: none) and (not (cater-color: $cursor)) {
-  .login-container .el-input input {
-    color: $cursor;
-  }
-}
-
-/* reset element-ui css */
-.login-container {
-  .el-input {
-    display: inline-block;
-    height: 47px;
-    width: 85%;
-
-    input {
-      background: transparent;
-      border: 0px;
-      -webkit-appearance: none;
-      border-radius: 0px;
-      padding: 12px 5px 12px 15px;
-      color: $light_gray;
-      height: 47px;
-      caret-color: $cursor;
-
-      &:-webkit-autofill {
-        box-shadow: 0 0 0px 1000px $bg inset !important;
-        -webkit-text-fill-color: $cursor !important;
-      }
-    }
-  }
-
-  .el-form-item {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 5px;
-    color: #454545;
-  }
-}
-</style>
-
 <style lang="scss" scoped>
-$bg:#2d3a4b;
-$dark_gray:#889aa4;
-$light_gray:#eee;
-
-.login-container {
-  min-height: 100%;
-  width: 100%;
-  background-color: $bg;
-  overflow: hidden;
-
-  .login-form {
-    position: relative;
-    width: 520px;
-    max-width: 100%;
-    padding: 160px 35px 0;
-    margin: 0 auto;
-    overflow: hidden;
+.dashboard {
+  &-container {
+    margin: 30px;
   }
-
-  .svg-container {
-    padding: 6px 5px 6px 15px;
-    color: $dark_gray;
-    vertical-align: middle;
-    width: 30px;
-    display: inline-block;
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
   }
-
-  .title-container {
-    position: relative;
-
-    .title {
-      font-size: 26px;
-      color: $light_gray;
-      margin: 0px auto 40px auto;
-      text-align: center;
-      font-weight: bold;
-    }
-  }
-
-  .show-pwd {
-    position: absolute;
-    right: 10px;
-    top: 7px;
-    font-size: 16px;
-    color: $dark_gray;
-    cursor: pointer;
-    user-select: none;
-  }
+}
+::v-deep .el-icon-document {
+  display: none;
+}
+::v-deep .el-upload-list__item-name {
+  padding-left: 0;
+  margin-right: 22px;
+}
+::v-deep .el-upload-list__item {
+  font-size: 9px;
+  margin-top: 0;
+}
+::v-deep .el-upload-list__item .el-icon-close {
+  top: 3px;
+}
+::v-deep .el-progress__text {
+  font-size: 9px !important;
+  top: -16px;
+}
+::v-deep .el-dialog__header {
+  padding: 0;
+}
+::v-deep .el-dialog {
+  height: 80%;
+}
+::v-deep .el-dialog__body {
+  height: calc(100% - 60px);
+}
+ul.upload-file  {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 9px;
+}
+ul.upload-file ul li {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 9px;
+}
+.el-icon-close:hover {
+  cursor: pointer;
+  color: red;
+}
+.pagination-container {
+  margin-top: 20px;
 }
 </style>

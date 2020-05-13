@@ -59,6 +59,7 @@
 
 <script>
 import TakePhoto from "./take-photo";
+import {getList} from '@/api/table'
 
 export default {
   name: "Dashboard",
@@ -109,6 +110,11 @@ export default {
         }
       ]
     };
+  },
+  created(){
+    getList().then(res => {
+      console.log(res)
+    })
   },
   methods: {
     uploadSuccess(file, fileList) {},
