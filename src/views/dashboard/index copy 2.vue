@@ -21,7 +21,7 @@
       </el-table-column>
       <el-table-column label="拍照" width="80" align="center">
         <template>
-          <el-button size="mini" type="text" @click="openMedia">拍照</el-button>
+          <el-button size="mini" type="text">拍照</el-button>
         </template>
       </el-table-column>
       <el-table-column label="选择文件" align="center" width="100">
@@ -40,36 +40,14 @@
         <el-button type="danger" size="mini" plain>删除</el-button>
       </el-table-column>
     </el-table>
-
-    <el-dialog :visible.sync="dialogVisible" width="80%" :before-close="handleClose">
-      <take-photo class="photo" ref="photo"></take-photo>
-      <span
-        slot="footer"
-        class="dialog-footer"
-        style="display: flex; justify-content: space-around;"
-      >
-        <div style="text-align: center;">
-          <el-button size="mini" type="primary" @click="handleTakePhoto">拍照</el-button>
-        </div>
-        <el-button type="primary" @click="dialogVisible = false" size="mini">确 定</el-button>
-      </span>
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import TakePhoto from "./take-photo";
-
 export default {
   name: "Dashboard",
-  components: {
-    TakePhoto
-  },
   data() {
     return {
-      dialogVisible: false,
-      statusMsg: "拍照",
-      status: 1,
       tableData: [
         {
           date: "建设工程消防设计备案申报表",
@@ -112,47 +90,6 @@ export default {
   },
   methods: {
     uploadSuccess(file, fileList) {},
-    openMedia() {
-      this.dialogVisible = true;
-      setTimeout(this.handleTakePhoto, 100);
-    },
-    handleTakePhoto() {
-      if (this.status === 1) {
-        // 初始化摄像头
-        this.statusMsg = "查找设备中...";
-        this.$refs.photo.init(res => {
-          if (res) {
-            this.status = 2;
-            this.statusMsg = "拍照";
-          } else {
-            alert("未发现设备");
-          }
-        }); // 初始化摄像头
-      } else if (this.status === 2) {
-        // 拍照
-        this.$refs.photo.takePhoto((res, img) => {
-          if (res) {
-            this.status = 3;
-            console.log(img);
-            this.statusMsg = "重新拍";
-          }
-        });
-      } else if (this.status === 3) {
-        // 重新拍
-        this.$refs.photo.init(res => {
-          if (res) {
-            this.status = 2;
-            this.statusMsg = "拍照";
-          } else {
-            alert("未发现设备");
-          }
-        }); // 初始化摄像头
-      }
-    },
-    handleClose(done) {
-      this.$refs.photo.closeMedia();
-      done();
-    }
   }
 };
 </script>
@@ -184,14 +121,5 @@ export default {
 ::v-deep .el-progress__text {
   font-size: 9px !important;
   top: -16px;
-}
-::v-deep .el-dialog__header {
-  padding: 0;
-}
-::v-deep .el-dialog {
-  height: 80%;
-}
-::v-deep .el-dialog__body {
-  height: calc(100% - 60px);
 }
 </style>

@@ -21,7 +21,15 @@
       </el-table-column>
       <el-table-column label="拍照" width="80" align="center">
         <template>
-          <el-button size="mini" type="text" @click="openMedia">拍照</el-button>
+          <div class="div-a">
+            <video id="video" width="480" height="320" autoplay style="background:#ddd"></video>
+            <p>
+              <el-button id="capture" size="mini" type="text">拍照</el-button>
+            </p>
+          </div>
+          <div class="div-b">
+            <canvas id="canvas" width="480" height="320"></canvas>
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="选择文件" align="center" width="100">
@@ -40,36 +48,14 @@
         <el-button type="danger" size="mini" plain>删除</el-button>
       </el-table-column>
     </el-table>
-
-    <el-dialog :visible.sync="dialogVisible" width="80%" :before-close="handleClose">
-      <take-photo class="photo" ref="photo"></take-photo>
-      <span
-        slot="footer"
-        class="dialog-footer"
-        style="display: flex; justify-content: space-around;"
-      >
-        <div style="text-align: center;">
-          <el-button size="mini" type="primary" @click="handleTakePhoto">拍照</el-button>
-        </div>
-        <el-button type="primary" @click="dialogVisible = false" size="mini">确 定</el-button>
-      </span>
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import TakePhoto from "./take-photo";
-
 export default {
   name: "Dashboard",
-  components: {
-    TakePhoto
-  },
   data() {
     return {
-      dialogVisible: false,
-      statusMsg: "拍照",
-      status: 1,
       tableData: [
         {
           date: "建设工程消防设计备案申报表",
@@ -110,48 +96,73 @@ export default {
       ]
     };
   },
+  mounted() {
+    var success = this.success();
+    var error = this.error();
+    var video = document.getElementById("video");
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+    var base64 = "";
+    if (
+      navigator.mediaDevices ||
+      navigator.getUserMedia ||
+      navigator.webkitGetUserMedia ||
+      navigator.mozGetUserMedia
+    ) {
+      //调用用户媒体设备, 访问摄像头
+      this.getUserMedia(
+        {
+          audio: false,
+          video: true
+        },
+        success,
+        error
+      );
+
+      document.getElementById("capture").addEventListener("click", function() {
+        context.drawImage(video, 0, 0, 480, 320); //显示拍照的图片
+
+        //转换为base64格式
+        base64 = canvas.toDataURL("image/jpeg");
+      });
+    } else {
+      alert("不支持访问用户媒体");
+    }
+  },
   methods: {
     uploadSuccess(file, fileList) {},
-    openMedia() {
-      this.dialogVisible = true;
-      setTimeout(this.handleTakePhoto, 100);
-    },
-    handleTakePhoto() {
-      if (this.status === 1) {
-        // 初始化摄像头
-        this.statusMsg = "查找设备中...";
-        this.$refs.photo.init(res => {
-          if (res) {
-            this.status = 2;
-            this.statusMsg = "拍照";
-          } else {
-            alert("未发现设备");
-          }
-        }); // 初始化摄像头
-      } else if (this.status === 2) {
-        // 拍照
-        this.$refs.photo.takePhoto((res, img) => {
-          if (res) {
-            this.status = 3;
-            console.log(img);
-            this.statusMsg = "重新拍";
-          }
-        });
-      } else if (this.status === 3) {
-        // 重新拍
-        this.$refs.photo.init(res => {
-          if (res) {
-            this.status = 2;
-            this.statusMsg = "拍照";
-          } else {
-            alert("未发现设备");
-          }
-        }); // 初始化摄像头
+    //访问用户媒体设备的兼容方法
+    getUserMedia(constraints, success, error) {
+      if (navigator.mediaDevices) {
+        //最新的标准API
+        navigator.mediaDevices
+          .getUserMedia(constraints)
+          .then(success)
+          .catch(error);
+      } else if (navigator.webkitGetUserMedia) {
+        //webkit核心浏览器
+        navigator.webkitGetUserMedia(constraints, success, error);
+      } else if (navigator.mozGetUserMedia) {
+        //firfox浏览器
+        navigator.mozGetUserMedia(constraints, success, error);
+      } else if (navigator.getUserMedia) {
+        //旧版API
+        navigator.getUserMedia(constraints, success, error);
       }
     },
-    handleClose(done) {
-      this.$refs.photo.closeMedia();
-      done();
+    success(stream) {
+      window.stream = stream;
+      if (window.URL) {
+        video.src = window.URL.createObjectURL(stream);
+      } else {
+        video.src = stream;
+      }
+    },
+    error(error) {
+      alert("获取失败");
+    },
+    GetBase64ZP() {
+      return base64;
     }
   }
 };
@@ -185,13 +196,12 @@ export default {
   font-size: 9px !important;
   top: -16px;
 }
-::v-deep .el-dialog__header {
-  padding: 0;
+.div-a {
+  float: left;
+  width: 49%;
 }
-::v-deep .el-dialog {
-  height: 80%;
-}
-::v-deep .el-dialog__body {
-  height: calc(100% - 60px);
+.div-b {
+  float: left;
+  width: 49%;
 }
 </style>
