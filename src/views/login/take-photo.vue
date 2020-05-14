@@ -11,22 +11,22 @@
         <video ref="video" width="300" height="400" autoplay></video>
       </el-col>
       <el-col :span="12" align="center" class="image-container">
-        <canvas ref="canvas" v-show="taked"></canvas>
+        <canvas ref="canvas" v-show="taked" width="300" height="400"></canvas>
         <div v-for="(item, index) in initImage1" :key="index + 'a'" class="image-style">
           <el-image
-            fit="fill"
+            fit="cover"
             :src="item"
             :preview-src-list="initImage1"
-            style="width: 150px; height: 150px;"
+            style="width: 150px; height: 200px;"
           ></el-image>
           <i @click="deleteImage(index, 'init')" class="el-icon-close"></i>
         </div>
         <div v-for="(item, index) in imglist" :key="index + 'b'" class="image-style">
           <el-image
-            fit="fill"
+            fit="cover"
             :src="item"
             :preview-src-list="imglist"
-            style="width: 150px; height: 150px;"
+            style="width: 150px; height: 200px;"
           ></el-image>
           <i @click="deleteImage(index)" class="el-icon-close"></i>
         </div>
@@ -186,8 +186,8 @@ export default {
   height: 100%;
   margin-right: 20px;
   video {
-    object-fit: fill;
-    // width: 100%;
+    object-fit: cover;
+    width: 100%;
   }
 }
 .image-style {
