@@ -14,7 +14,7 @@
       <el-table-column type="index" label="序号" width="60" align="center"></el-table-column>
       <el-table-column header-align="center" label="内容" min-width="300" align="left">
         <template slot-scope="scope">
-          <el-input size="mini" v-model="scope.row.bz" :disabled="readonly == 1" />
+          <el-input size="mini" v-model="scope.row.bz" :title="scope.row.bz" :disabled="readonly == 1" />
         </template>
       </el-table-column>
       <el-table-column label="原件" align="center" width="130">

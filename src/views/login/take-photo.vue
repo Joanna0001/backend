@@ -8,7 +8,7 @@
       style="height: 100%; overflow: auto;"
     >
       <el-col :span="12">
-        <video ref="video" autoplay></video>
+        <video ref="video" width="300" height="400" autoplay></video>
       </el-col>
       <el-col :span="12" align="center" class="image-container">
         <canvas ref="canvas" v-show="taked"></canvas>
@@ -187,7 +187,7 @@ export default {
   margin-right: 20px;
   video {
     object-fit: fill;
-    width: 100%;
+    // width: 100%;
   }
 }
 .image-style {
