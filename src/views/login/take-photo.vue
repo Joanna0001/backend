@@ -12,7 +12,16 @@
       </el-col>
       <el-col :span="12" align="center" class="image-container">
         <canvas ref="canvas" v-show="taked"></canvas>
-        <div v-for="(item, index) in imglist" :key="index" class="image-style">
+        <div v-for="(item, index) in initImage1" :key="index + 'a'" class="image-style">
+          <el-image
+            fit="fill"
+            :src="item"
+            :preview-src-list="initImage1"
+            style="width: 150px; height: 150px;"
+          ></el-image>
+          <i @click="deleteImage(index, 'init')" class="el-icon-close"></i>
+        </div>
+        <div v-for="(item, index) in imglist" :key="index + 'b'" class="image-style">
           <el-image
             fit="fill"
             :src="item"
@@ -26,13 +35,16 @@
   </div>
 </template>
 <script>
-import {getOssUrl} from '@/api/table'
+import { getOssUrl } from "@/api/table";
+import $ from "jquery";
+import axios from "axios";
 
 export default {
   name: "TakePhoto",
-  props: ['initImage'],
+  props: ["initImage"],
   data() {
     return {
+      initImage1: [],
       url: "",
       video: null,
       track: "",
@@ -40,25 +52,34 @@ export default {
       width: null,
       height: null,
       imglist: [],
-      imglistTemp: []
+      imglistTemp: [],
+      url: `/DataInput/FileService?method=DownloadFile&fileid=`
     };
   },
-  created(){
+  created() {
     console.log(this.initImage)
-    // var data = this.initImage.split('|')
-    // var temp = []
-    // data.forEach(item => {
-    //   if((item.toLowerCase().indexOf('jpg') != -1) || (item.indexOf('jfif') != -1) || (item.indexOf('gif') != -1) || (item.indexOf('gift') != -1)){
-    //     getOssUrl({ fileid: item.split(",")[0] }).then(res => {
-    //       temp.push(res.data.fileurl);
-    //     });
-    //   }
-    // })
-    // this.imglist = temp
+    if (this.initImage) {
+      var data = this.initImage;
+      var temp = [];
+      var temp1 = [];
+      data.forEach(item => {
+        if (item.toLowerCase().indexOf("png") != -1) {
+          temp.push(this.url + item.split(",")[0]);
+          temp1.push(item);
+        }
+      });
+      this.initImage1 = temp;
+      this.initImage2 = temp1;
+    }
   },
   methods: {
-    deleteImage(index) {
-      this.imglist.splice(index, 1);
+    deleteImage(index, val) {
+      if (val) {
+        this.initImage1.splice(index, 1);
+        this.initImage2.splice(index, 1);
+      } else {
+        this.imglist.splice(index, 1);
+      }
     },
     init(call) {
       this.taked = false;
@@ -106,30 +127,30 @@ export default {
       // call(true, image_code);
     },
     submitImage() {
-      console.log(this.imglist);
+      var temp = []
       this.imglist.forEach(item => {
         var data = this.dataURLtoFile(item);
         var formData = new FormData();
-        formData.append("fileObj", data);
-
-        // this.axios
-        //   .$post(`/DataInput/FileService?method=UploadFile&type=`, formData)
-        //   .then(res => {
-        //     console.log(res);
-        //   }).catch(err => {
-        //     console.log(err)
-        //   });
+        formData.append("Filedata", data);
         
-        // $.ajax({
-        //   url: '/DataInput/FileService?method=UploadFile&type=',
-        //   type: 'POST',
-        //   data: formData,
-        //   processData: false,
-        //   contentType: false,
-        //   success: res => {
-        //     console.log(res)
-        //   }
-        // })
+        axios
+          .post(`/DataInput/FileService?method=UploadFile&type=`, formData)
+          .then(res => {
+            // console.log(res);
+            if(res.status == 200){
+              temp.push(res.data.fileid + ',' + res.data.filename)
+            }
+          })
+          .catch(err => {
+            console.log(err);
+          });
+
+        if(this.initImage2.length > 0){
+          this.initImage2.forEach(item => {
+            temp.push(item)
+          })
+        }
+        this.$emit("saveImage", temp);
       });
     },
     closeMedia() {

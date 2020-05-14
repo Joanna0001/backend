@@ -29,7 +29,7 @@
       </el-table-column>
       <el-table-column label="拍照" width="90" align="center">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" @click="openMedia(scope.row.fj)">拍照</el-button>
+          <el-button size="mini" type="text" @click="openMedia(scope.row.imgList)">拍照</el-button>
         </template>
       </el-table-column>
       <el-table-column label="选择文件" align="center" width="100">
@@ -42,12 +42,12 @@
           >
             <el-button size="mini" type="text" :disabled="readonly == 1">选择文件</el-button>
           </el-upload>
-          <!-- <ul class="upload-file" v-for="(item, index) in scope.row.fj.split('|')" :key="index">
+          <ul class="upload-file" v-for="(item, index) in scope.row.fileList" :key="index">
             <li style="line-height: 15px; display: flex; justify-content: space-around; align-items: center;">
               <span>{{ item.split(',')[1] }}</span>
-              <i @click="deleteFile(index)" v-if="item" class="el-icon-close" style="font-size: 9px;" />
+              <!-- <i @click="deleteFile(index)" v-if="item" class="el-icon-close" style="font-size: 9px;" /> -->
             </li>
-          </ul> -->
+          </ul>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="170" align="center">
@@ -71,7 +71,7 @@
     </div>
 
     <el-dialog :visible.sync="dialogVisible" width="80%" :before-close="handleClose">
-      <take-photo :initImage="initImage" class="photo" ref="photo"></take-photo>
+      <take-photo @saveImage="saveImage" :initImage="initImage" class="photo" ref="photo"></take-photo>
       <span
         slot="footer"
         class="dialog-footer"
@@ -91,6 +91,7 @@ import TakePhoto from "./take-photo";
 import { getList, deleteItem, updateItem } from "@/api/table";
 
 export default {
+  inject: ["reload"],
   name: "Dashboard",
   components: {
     TakePhoto
@@ -98,6 +99,8 @@ export default {
   data() {
     return {
       initImage: [],
+      savedInitImage: [],
+      imageList: [],
       fileList: [],
       loading: true,
       dialogVisible: false,
@@ -115,18 +118,20 @@ export default {
     };
   },
   created() {
-    // console.log(this.$route)
-    var path = '/index.html?readonly=0&fxbaid=dc85adf45dfc4894a97de4bf16c5ce29&serialno=20200513001&typebh='
+    var path = location.search
+    // var path = '/index.html?readonly=0&fxbaid=dc85adf45dfc4894a97de4bf16c5ce29&serialno=20200513001&typebh='
     var pathArr = path.split('&')
     // console.log(path.split('&'))
     this.readonly = pathArr[0].split('=')[1]
     this.listQuery[pathArr[1].split('=')[0]] = pathArr[1].split('=')[1]
     this.listQuery[pathArr[2].split('=')[0]] = pathArr[2].split('=')[1]
-    // console.log(this.listQuery)
     this.fetchData();
   },
   methods: {
-    deleteFile(val){
+    saveImage(val){
+      this.savedInitImage = val
+    },
+    deleteFile(index){
 
     },
     createItem(){
@@ -141,7 +146,23 @@ export default {
       getList(this.listQuery).then(res => {
         this.loading = false
         this.total = res.total
-        this.tableData = res.rows
+        let data = res.rows
+        for(let x = 0; x < data.length; x++){
+          if(data[x].fj){
+            this.$set(data[x], 'fileList', [])
+            this.$set(data[x], 'imgList', [])
+            var temp = data[x].fj.split('|')
+            for(let i = 0; i < temp.length; i++){
+              if (temp[i].toLowerCase().indexOf("png") == -1) {
+                data[x].fileList.push(temp[i].split('|')[0])
+              }else{
+                data[x].imgList.push(temp[i].split('|')[0])
+              }
+            }            
+          }
+        }
+        // console.log(data)
+        this.tableData = data
       });
     },
     saveHandle(val){
@@ -173,6 +194,13 @@ export default {
       this.fileList.forEach(item => {
         fileTemp.push(item.fileid + "," + item.filename)
       })
+
+      if(this.savedInitImage.length > 0){
+        this.savedInitImage.forEach(item => {
+          fileTemp.push(item)
+        })
+      }
+
       sendData.fj = fileTemp.join('|')
 
       console.log(sendData)
@@ -180,6 +208,7 @@ export default {
         if(res.code == 0){
           this.$message.success('保存成功')
           this.fetchData()
+          location.reload()
         }else{
           this.$message.error(res.msg)
         }
@@ -260,6 +289,7 @@ export default {
     uploadImage(){
       this.dialogVisible = false
       this.$refs.photo.submitImage()
+      this.$refs.photo.closeMedia();
     },
     handleClose(done) {
       this.status = 1

@@ -52,8 +52,10 @@ module.exports = {
     // it can be accessed in index.html to inject the correct title.
     name: name,
     resolve: {
+      // extensions: ['.js', '.vue', '.json'],
       alias: {
-        '@': resolve('src')
+        '@': resolve('src'),
+        // 'jquery': path.resolve(__dirname, '../node_modules/jquery/src/jquery')
       }
     }
   },
