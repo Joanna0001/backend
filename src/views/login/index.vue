@@ -12,7 +12,7 @@
       size="mini"
     >
       <el-table-column type="index" label="序号" width="60" align="center"></el-table-column>
-      <el-table-column header-align="center" label="内容" align="left">
+      <el-table-column header-align="center" label="内容" min-width="300" align="left">
         <template slot-scope="scope">
           <el-input size="mini" v-model="scope.row.bz" :disabled="readonly == 1" />
         </template>
@@ -43,17 +43,31 @@
             <el-button size="mini" type="text" :disabled="readonly == 1">选择文件</el-button>
           </el-upload>
           <ul class="upload-file" v-for="(item, index) in scope.row.fileList" :key="index">
-            <li style="line-height: 15px; display: flex; justify-content: space-around; align-items: center;">
-              <span>{{ item.split(',')[1] }}</span>
-              <!-- <i @click="deleteFile(index)" v-if="item" class="el-icon-close" style="font-size: 9px;" /> -->
+            <li>
+              <div style="cursor: pointer;">
+                <a :href="'http://118.178.120.218:8088' + url + item.split(',')[0]" target="_blank">{{ item.split(',')[1] }}</a>
+                <i @click="deleteFile(index, scope.row.fileList)" class="el-icon-close" />
+              </div>
             </li>
           </ul>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="170" align="center">
         <template slot-scope="scope">
-          <el-button type="primary" size="mini" plain @click="saveHandle(scope.row)" :disabled="readonly == 1">保存</el-button>
-          <el-button type="danger" size="mini" plain @click="deleteHandle(scope.row, scope.$index)" :disabled="readonly == 1">删除</el-button>
+          <el-button
+            type="primary"
+            size="mini"
+            plain
+            @click="saveHandle(scope.row)"
+            :disabled="readonly == 1"
+          >保存</el-button>
+          <el-button
+            type="danger"
+            size="mini"
+            plain
+            @click="deleteHandle(scope.row, scope.$index)"
+            :disabled="readonly == 1"
+          >删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -78,7 +92,12 @@
         style="display: flex; justify-content: space-around;"
       >
         <div style="text-align: center;">
-          <el-button size="mini" type="primary" @click="handleTakePhoto" :disabled="readonly == 1">拍照</el-button>
+          <el-button
+            size="mini"
+            type="primary"
+            @click="handleTakePhoto"
+            :disabled="readonly == 1"
+          >拍照</el-button>
         </div>
         <el-button type="primary" @click="uploadImage" size="mini" :disabled="readonly == 1">确 定</el-button>
       </span>
@@ -98,6 +117,7 @@ export default {
   },
   data() {
     return {
+      url: `/DataInput/FileService?method=DownloadFile&fileid=`,
       initImage: [],
       savedInitImage: [],
       imageList: [],
@@ -108,66 +128,66 @@ export default {
       listQuery: {
         page: 1,
         rows: 10,
-        fxbaid: '',
-        serialno: ''
+        fxbaid: "",
+        serialno: ""
       },
       statusMsg: "拍照",
       status: 1,
       tableData: [],
-      readonly: 1  // 只读1
+      readonly: 1 // 只读1
     };
   },
   created() {
-    var path = location.search
+    var path = location.search;
     // var path = '/index.html?readonly=0&fxbaid=dc85adf45dfc4894a97de4bf16c5ce29&serialno=20200513001&typebh='
-    var pathArr = path.split('&')
-    // console.log(path.split('&'))
-    this.readonly = pathArr[0].split('=')[1]
-    this.listQuery[pathArr[1].split('=')[0]] = pathArr[1].split('=')[1]
-    this.listQuery[pathArr[2].split('=')[0]] = pathArr[2].split('=')[1]
+    var pathArr = path.split("&");
+    this.readonly = pathArr[0].split("=")[1];
+    this.listQuery[pathArr[1].split("=")[0]] = pathArr[1].split("=")[1];
+    this.listQuery[pathArr[2].split("=")[0]] = pathArr[2].split("=")[1];
     this.fetchData();
   },
   methods: {
-    saveImage(val){
-      this.savedInitImage = val
+    saveImage(val) {
+      this.savedInitImage = val;
     },
-    deleteFile(index){
-
+    deleteFile(index, val) {
+      val.splice(index, 1)
     },
-    createItem(){
+    createItem() {
       this.tableData.push({
         bz: "",
         fj: "",
         fyj: "",
         yj: ""
-      })
+      });
     },
     fetchData() {
       getList(this.listQuery).then(res => {
-        this.loading = false
-        this.total = res.total
-        let data = res.rows
-        for(let x = 0; x < data.length; x++){
-          if(data[x].fj){
-            this.$set(data[x], 'fileList', [])
-            this.$set(data[x], 'imgList', [])
-            var temp = data[x].fj.split('|')
-            for(let i = 0; i < temp.length; i++){
+        this.loading = false;
+        this.total = res.total;
+        let data = res.rows;
+        for (let x = 0; x < data.length; x++) {
+          if (data[x].fj) {
+            this.$set(data[x], "fileList", []);
+            this.$set(data[x], "imgList", []);
+            var temp = data[x].fj.split("|");
+            for (let i = 0; i < temp.length; i++) {
               if (temp[i].toLowerCase().indexOf("png") == -1) {
-                data[x].fileList.push(temp[i].split('|')[0])
-              }else{
-                data[x].imgList.push(temp[i].split('|')[0])
+                data[x].fileList.push(temp[i].split("|")[0]);
+              } else {
+                data[x].imgList.push(temp[i].split("|")[0]);
               }
-            }            
+            }
           }
         }
         // console.log(data)
-        this.tableData = data
+        this.tableData = data;
       });
     },
-    saveHandle(val){
-      var sendData = {}
-      if(val.recid){  // 修改
+    saveHandle(val) {
+      var sendData = {};
+      if (val.recid) {
+        // 修改
         sendData = {
           fxbaid: val.fxbaid,
           serialno: val.serialno,
@@ -179,87 +199,91 @@ export default {
           bz: val.bz,
           yj: val.yj,
           fyj: val.fyj
-        }
-      }else{  // 新增
+        };
+      } else {
+        // 新增
         sendData = {
           serialno: this.listQuery.serialno,
           fxbaid: this.listQuery.fxbaid,
           bz: val.bz,
           yj: val.yj,
           fyj: val.fyj
-        }
+        };
       }
 
-      var fileTemp = []
-      this.fileList.forEach(item => {
-        fileTemp.push(item.fileid + "," + item.filename)
-      })
+      var fileTemp = [];
 
-      if(this.savedInitImage.length > 0){
+      if (this.savedInitImage.length > 0) {
         this.savedInitImage.forEach(item => {
-          fileTemp.push(item)
-        })
-      }else if(val.imgList.length > 0){
+          fileTemp.push(item);
+        });
+      } else if (val.imgList.length > 0) {
         val.imgList.forEach(item => {
-          fileTemp.push(item)
-        })
+          fileTemp.push(item);
+        });
       }
-      if(this.fileList.length == 0){
+      if (val.fileList) {
         val.fileList.forEach(item => {
-          fileTemp.push(item)
-        })
+          fileTemp.push(item);
+        });
+      }
+      if (this.fileList.length > 0) {
+        this.fileList.forEach(item => {
+          fileTemp.push(item.fileid + "," + item.filename);
+        });
       }
 
-      sendData.fj = fileTemp.join('|')
+      sendData.fj = fileTemp.join("|");
 
-      console.log(sendData)
-      updateItem(sendData).then(res => { // 新增或则修改（id不传是新增，传了是修改）
-        if(res.code == 0){
-          this.$message.success('保存成功')
-          this.fetchData()
-          location.reload()
-        }else{
-          this.$message.error(res.msg)
+      console.log(sendData);
+      updateItem(sendData).then(res => {
+        // 新增或则修改（id不传是新增，传了是修改）
+        if (res.code == 0) {
+          this.$message.success("保存成功");
+          this.fetchData();
+          location.reload();
+        } else {
+          this.$message.error(res.msg);
         }
-      })
+      });
     },
-    deleteHandle(val, index){
-      if(val.recid){
+    deleteHandle(val, index) {
+      if (val.recid) {
         var sendData = {
-          bz: val.bz,  //
-          fj: val.fj,  //
+          bz: val.bz, //
+          fj: val.fj, //
           fxbaid: val.fxbaid,
-          fyj: val.fyj,  // 
+          fyj: val.fyj, //
           lrrxm: val.lrrxm,
           lrrzh: val.lrrzh,
           lrsj: val.lrsj,
           id: val.recid,
           rowstat: val.rowstat,
           serialno: val.serialno,
-          yj: val.yj  // 
-        }
+          yj: val.yj //
+        };
         deleteItem(sendData).then(res => {
-          if(res.code == 0){
-            this.fetchData()
-            this.$message.success('删除成功')
-          }else{
-            this.$message.error(res.msg)
+          if (res.code == 0) {
+            this.fetchData();
+            this.$message.success("删除成功");
+          } else {
+            this.$message.error(res.msg);
           }
-        })
-      }else{
-        this.tableData.splice(index, 1)
+        });
+      } else {
+        this.tableData.splice(index, 1);
       }
     },
     uploadSuccess(file, fileList) {
-      console.log(file)
+      console.log(file);
       this.fileList.push(file);
     },
-    removeFile(file, fileList){
+    removeFile(file, fileList) {
       this.fileList = fileList;
     },
     openMedia(val) {
       this.dialogVisible = true;
-      this.initImage = val
+      this.initImage = val;
       setTimeout(this.handleTakePhoto, 100);
     },
     handleTakePhoto() {
@@ -278,8 +302,6 @@ export default {
         // 拍照
         this.$refs.photo.takePhoto((res, img) => {
           if (res) {
-            // this.status = 3;
-            // console.log(img);
             this.statusMsg = "重新拍";
           }
         });
@@ -295,13 +317,14 @@ export default {
         }); // 初始化摄像头
       }
     },
-    uploadImage(){
-      this.dialogVisible = false
-      this.$refs.photo.submitImage()
+    uploadImage() {
+      this.dialogVisible = false;
       this.$refs.photo.closeMedia();
+      this.$refs.photo.submitImage();
+      this.status = 1;
     },
     handleClose(done) {
-      this.status = 1
+      this.status = 1;
       this.$refs.photo.closeMedia();
       done();
     },
@@ -317,6 +340,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.is-success {
+  display: none;
+}
 .dashboard {
   &-container {
     margin: 30px;
@@ -331,7 +357,7 @@ export default {
 }
 ::v-deep .el-upload-list__item-name {
   padding-left: 0;
-  margin-right: 22px;
+  margin-right: 25px;
 }
 ::v-deep .el-upload-list__item {
   font-size: 9px;
@@ -353,7 +379,7 @@ export default {
 ::v-deep .el-dialog__body {
   height: calc(100% - 60px);
 }
-ul.upload-file  {
+ul.upload-file {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -364,10 +390,19 @@ ul.upload-file ul li {
   padding: 0;
   margin: 0;
   font-size: 9px;
-}
-.el-icon-close:hover {
   cursor: pointer;
+  line-height: 15px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+ul.upload-file li:hover i {
+  display: inline;
   color: red;
+  cursor: pointer;
+}
+ul.upload-file li i {
+  display: none;
 }
 .pagination-container {
   margin-top: 20px;
