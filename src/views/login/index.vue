@@ -108,6 +108,7 @@
 <script>
 import TakePhoto from "./take-photo";
 import { getList, deleteItem, updateItem } from "@/api/table";
+import $ from "jquery";
 
 export default {
   inject: ["reload"],
@@ -241,11 +242,12 @@ export default {
         if (res.code == 0) {
           this.$message.success("保存成功");
           this.fetchData();
-          location.reload();
+          $('.el-upload-list__item.is-success').css('display', 'none')
         } else {
           this.$message.error(res.msg);
         }
       });
+      
     },
     deleteHandle(val, index) {
       if (val.recid) {
@@ -340,6 +342,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.file-success {
+  display: none;
+}
 .is-success {
   display: none;
 }
