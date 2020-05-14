@@ -217,7 +217,7 @@ export default {
         if(res.code == 0){
           this.$message.success('保存成功')
           this.fetchData()
-          // location.reload()
+          location.reload()
         }else{
           this.$message.error(res.msg)
         }

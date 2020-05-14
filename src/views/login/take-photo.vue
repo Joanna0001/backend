@@ -74,7 +74,7 @@ export default {
   },
   methods: {
     deleteImage(index, val) {
-      if (val) {
+      if (val) {  // 本来就有的
         this.initImage1.splice(index, 1);
         this.initImage2.splice(index, 1);
       } else {
@@ -128,6 +128,7 @@ export default {
     },
     submitImage() {
       var temp = []
+      
       this.imglist.forEach(item => {
         var data = this.dataURLtoFile(item);
         var formData = new FormData();
@@ -150,8 +151,14 @@ export default {
             temp.push(item)
           })
         }
+
         this.$emit("saveImage", temp);
       });
+
+      if(this.imglist.length == 0){
+        temp = this.initImage2
+        this.$emit("saveImage", temp);
+      }
     },
     closeMedia() {
       if (null != this.track) {
