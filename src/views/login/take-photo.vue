@@ -45,6 +45,7 @@ export default {
   data() {
     return {
       initImage1: [],
+      initImage2: [],
       url: "",
       video: null,
       track: "",
@@ -57,7 +58,6 @@ export default {
     };
   },
   created() {
-    console.log(this.initImage)
     if (this.initImage) {
       var data = this.initImage;
       var temp = [];
@@ -201,5 +201,6 @@ export default {
   display: flex;
   justify-content: space-around;
   flex-wrap: wrap;
+  height: 100%;
 }
 </style>

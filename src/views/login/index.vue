@@ -199,6 +199,15 @@ export default {
         this.savedInitImage.forEach(item => {
           fileTemp.push(item)
         })
+      }else if(val.imgList.length > 0){
+        val.imgList.forEach(item => {
+          fileTemp.push(item)
+        })
+      }
+      if(this.fileList.length == 0){
+        val.fileList.forEach(item => {
+          fileTemp.push(item)
+        })
       }
 
       sendData.fj = fileTemp.join('|')
@@ -208,7 +217,7 @@ export default {
         if(res.code == 0){
           this.$message.success('保存成功')
           this.fetchData()
-          location.reload()
+          // location.reload()
         }else{
           this.$message.error(res.msg)
         }
