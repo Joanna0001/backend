@@ -14,7 +14,12 @@
       <el-table-column type="index" label="序号" width="60" align="center"></el-table-column>
       <el-table-column header-align="center" label="内容" min-width="300" align="left">
         <template slot-scope="scope">
-          <el-input size="mini" v-model="scope.row.bz" :title="scope.row.bz" :disabled="readonly == 1" />
+          <el-input
+            size="mini"
+            v-model="scope.row.bz"
+            :title="scope.row.bz"
+            :disabled="readonly == 1"
+          />
         </template>
       </el-table-column>
       <el-table-column label="原件" align="center" width="130">
@@ -44,8 +49,13 @@
           </el-upload>
           <ul class="upload-file" v-for="(item, index) in scope.row.fileList" :key="index">
             <li>
-              <div style="cursor: pointer;">
-                <a :href="'http://118.178.120.218:8088' + url + item.split(',')[0]" target="_blank">{{ item.split(',')[1] }}</a>
+              <div style="cursor: pointer; display: flex; align-items: center;">
+                <a
+                  :title="item.split(',')[1]"
+                  style="display: block; overflow: hidden; width: 95%; white-space: nowrap; text-overflow: ellipsis;"
+                  :href="'http://118.178.120.218:8088' + url + item.split(',')[0]"
+                  target="_blank"
+                >{{ item.split(',')[1] }}</a>
                 <i @click="deleteFile(index, scope.row.fileList)" class="el-icon-close" />
               </div>
             </li>
@@ -125,12 +135,7 @@
         style="display: flex; justify-content: space-around;"
       >
         <div style="text-align: center;">
-          <el-button
-            size="mini"
-            type="primary"
-            @click="takePhoto"
-            :disabled="readonly == 1"
-          >拍照</el-button>
+          <el-button size="mini" type="primary" @click="takePhoto" :disabled="readonly == 1">拍照</el-button>
         </div>
         <el-button type="primary" @click="submitImage" size="mini" :disabled="readonly == 1">确 定</el-button>
       </span>
@@ -148,8 +153,8 @@ export default {
   name: "Dashboard",
   data() {
     return {
-      initImage1: [],  // 能显示照片的url格式
-      initImage2: [],  // 保存传到接口的fileid格式
+      initImage1: [], // 能显示照片的url格式
+      initImage2: [], // 保存传到接口的fileid格式
       video: null,
       track: "",
       taked: false,
@@ -158,8 +163,8 @@ export default {
       imglist: [],
       url: `/DataInput/FileService?method=DownloadFile&fileid=`,
       savedImage: [],
-      imageList: [],  // 页面显示
-      fileList: [],  // 页面显示
+      imageList: [], // 页面显示
+      fileList: [], // 页面显示
       loading: true,
       dialogVisible: false,
       total: 0,
@@ -209,7 +214,7 @@ export default {
           }
         );
       } else {
-        alert('不支持访问用户媒体');
+        alert("不支持访问用户媒体");
       }
     },
     takePhoto() {
@@ -223,46 +228,47 @@ export default {
       this.imglist.push(image_code);
     },
     submitImage() {
-      var temp = []
+      var temp = [];
       this.imglist.forEach(item => {
         var data = this.dataURLtoFile(item);
         var formData = new FormData();
         formData.append("Filedata", data);
-        
+
         axios
           .post(`/DataInput/FileService?method=UploadFile&type=`, formData)
           .then(res => {
             // console.log(res);
-            if(res.status == 200){
-              temp.push(res.data.fileid + ',' + res.data.filename)
+            if (res.status == 200) {
+              temp.push(res.data.fileid + "," + res.data.filename);
             }
           })
           .catch(err => {
             console.log(err);
           });
 
-        if(this.initImage2.length > 0){
+        if (this.initImage2.length > 0) {
           this.initImage2.forEach(item => {
-            temp.push(item)
-          })
+            temp.push(item);
+          });
         }
 
-        this.savedImage = temp
+        this.savedImage = temp;
       });
-      
-      if(this.imglist.length == 0){
-        temp = this.initImage2
-        this.savedImage = temp
+
+      if (this.imglist.length == 0) {
+        temp = this.initImage2;
+        this.savedImage = temp;
       }
 
       this.dialogVisible = false;
       this.closeMedia();
     },
     deleteFile(index, val) {
-      val.splice(index, 1)
+      val.splice(index, 1);
     },
     deleteImage(index, val) {
-      if (val) {  // 本来就有的
+      if (val) {
+        // 本来就有的
         this.initImage1.splice(index, 1);
         this.initImage2.splice(index, 1);
       } else {
@@ -356,7 +362,7 @@ export default {
         if (res.code == 0) {
           this.$message.success("保存成功");
           this.fetchData();
-          $('.el-upload-list__item.is-success').css('display', 'none')
+          $(".el-upload-list__item.is-success").css("display", "none");
         } else {
           this.$message.error(res.msg);
         }
@@ -400,7 +406,7 @@ export default {
       this.dialogVisible = true;
       var temp = [];
       var temp1 = [];
-      if(data){
+      if (data) {
         data.forEach(item => {
           if (item.toLowerCase().indexOf("png") != -1) {
             temp.push(this.url + item.split(",")[0]);
@@ -504,6 +510,8 @@ ul.upload-file ul li {
   display: flex;
   justify-content: space-around;
   align-items: center;
+  word-break: break-all;
+  width: 100%;
 }
 ul.upload-file li:hover i {
   display: inline;
@@ -528,13 +536,13 @@ ul.upload-file li i {
   position: relative;
   margin: 0 10px 10px 0;
 }
-.el-icon-close {
+.image-container .el-icon-close {
   position: absolute;
   right: 5px;
   top: 5px;
   z-index: 99999;
 }
-.el-icon-close:hover {
+.image-container .el-icon-close:hover {
   cursor: pointer;
   color: red;
 }
