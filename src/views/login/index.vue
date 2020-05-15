@@ -85,7 +85,40 @@
     </div>
 
     <el-dialog :visible.sync="dialogVisible" width="80%" :before-close="handleClose">
-      <take-photo @saveImage="saveImage" :initImage="initImage" class="photo" ref="photo"></take-photo>
+      <div class="wrapper">
+        <el-row
+          type="flex"
+          :gutter="20"
+          justify="space-around"
+          align="middle"
+          style="height: 100%; overflow: auto;"
+        >
+          <el-col :span="12">
+            <video ref="video" width="300" height="400" autoplay></video>
+          </el-col>
+          <el-col :span="12" align="center" class="image-container">
+            <canvas ref="canvas" v-show="taked" width="300" height="400"></canvas>
+            <div v-for="(item, index) in initImage1" :key="index + 'a'" class="image-style">
+              <el-image
+                fit="cover"
+                :src="item"
+                :preview-src-list="initImage1"
+                style="width: 150px; height: 200px;"
+              ></el-image>
+              <i @click="deleteImage(index, 'init')" class="el-icon-close"></i>
+            </div>
+            <div v-for="(item, index) in imglist" :key="index + 'b'" class="image-style">
+              <el-image
+                fit="cover"
+                :src="item"
+                :preview-src-list="imglist"
+                style="width: 150px; height: 200px;"
+              ></el-image>
+              <i @click="deleteImage(index)" class="el-icon-close"></i>
+            </div>
+          </el-col>
+        </el-row>
+      </div>
       <span
         slot="footer"
         class="dialog-footer"
@@ -95,34 +128,38 @@
           <el-button
             size="mini"
             type="primary"
-            @click="handleTakePhoto"
+            @click="takePhoto"
             :disabled="readonly == 1"
           >拍照</el-button>
         </div>
-        <el-button type="primary" @click="uploadImage" size="mini" :disabled="readonly == 1">确 定</el-button>
+        <el-button type="primary" @click="submitImage" size="mini" :disabled="readonly == 1">确 定</el-button>
       </span>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import TakePhoto from "./take-photo";
 import { getList, deleteItem, updateItem } from "@/api/table";
 import $ from "jquery";
+import axios from "axios";
 
 export default {
   inject: ["reload"],
   name: "Dashboard",
-  components: {
-    TakePhoto
-  },
   data() {
     return {
+      initImage1: [],  // 能显示照片的url格式
+      initImage2: [],  // 保存传到接口的fileid格式
+      video: null,
+      track: "",
+      taked: false,
+      width: null,
+      height: null,
+      imglist: [],
       url: `/DataInput/FileService?method=DownloadFile&fileid=`,
-      initImage: [],
-      savedInitImage: [],
-      imageList: [],
-      fileList: [],
+      savedImage: [],
+      imageList: [],  // 页面显示
+      fileList: [],  // 页面显示
       loading: true,
       dialogVisible: false,
       total: 0,
@@ -132,8 +169,6 @@ export default {
         fxbaid: "",
         serialno: ""
       },
-      statusMsg: "拍照",
-      status: 1,
       tableData: [],
       readonly: 1 // 只读1
     };
@@ -148,11 +183,91 @@ export default {
     this.fetchData();
   },
   methods: {
-    saveImage(val) {
-      this.savedInitImage = val;
+    init() {
+      this.video = this.$refs.video;
+      navigator.getUserMedia =
+        navigator.getUserMedia ||
+        navigator.webkitGetUserMedia ||
+        navigator.mozGetUserMedia;
+      if (navigator.getUserMedia) {
+        navigator.getUserMedia(
+          { video: true },
+          stream => {
+            this.track = stream.getTracks()[0]; // 通过这个关闭摄像头
+            try {
+              this.video.src = window.URL.createObjectURL(stream); // chrome版本<=70
+            } catch (e) {
+              this.video.srcObject = stream; // chrome版本>70
+            }
+            this.video.onloadedmetadata = e => {
+              // console.log(e);
+              this.video.play();
+            };
+          },
+          err => {
+            console.log(err);
+          }
+        );
+      } else {
+        alert('不支持访问用户媒体');
+      }
+    },
+    takePhoto() {
+      let canvas = this.$refs.canvas;
+      let context2D = canvas.getContext("2d");
+      context2D.fillStyle = "#ffffff";
+      context2D.fillRect(0, 0, 300, 400);
+      context2D.drawImage(this.video, 0, 0, 300, 400);
+
+      let image_code = canvas.toDataURL("image/png"); //图片的base64
+      this.imglist.push(image_code);
+    },
+    submitImage() {
+      var temp = []
+      this.imglist.forEach(item => {
+        var data = this.dataURLtoFile(item);
+        var formData = new FormData();
+        formData.append("Filedata", data);
+        
+        axios
+          .post(`/DataInput/FileService?method=UploadFile&type=`, formData)
+          .then(res => {
+            // console.log(res);
+            if(res.status == 200){
+              temp.push(res.data.fileid + ',' + res.data.filename)
+            }
+          })
+          .catch(err => {
+            console.log(err);
+          });
+
+        if(this.initImage2.length > 0){
+          this.initImage2.forEach(item => {
+            temp.push(item)
+          })
+        }
+
+        this.savedImage = temp
+      });
+      
+      if(this.imglist.length == 0){
+        temp = this.initImage2
+        this.savedImage = temp
+      }
+
+      this.dialogVisible = false;
+      this.closeMedia();
     },
     deleteFile(index, val) {
       val.splice(index, 1)
+    },
+    deleteImage(index, val) {
+      if (val) {  // 本来就有的
+        this.initImage1.splice(index, 1);
+        this.initImage2.splice(index, 1);
+      } else {
+        this.imglist.splice(index, 1);
+      }
     },
     createItem() {
       this.tableData.push({
@@ -213,12 +328,11 @@ export default {
       }
 
       var fileTemp = [];
-
-      if (this.savedInitImage.length > 0) {
-        this.savedInitImage.forEach(item => {
+      if (this.savedImage.length > 0) {
+        this.savedImage.forEach(item => {
           fileTemp.push(item);
         });
-      } else if (val.imgList.length > 0) {
+      } else if (val.imgList) {
         val.imgList.forEach(item => {
           fileTemp.push(item);
         });
@@ -247,7 +361,6 @@ export default {
           this.$message.error(res.msg);
         }
       });
-      
     },
     deleteHandle(val, index) {
       if (val.recid) {
@@ -283,51 +396,42 @@ export default {
     removeFile(file, fileList) {
       this.fileList = fileList;
     },
-    openMedia(val) {
+    openMedia(data) {
       this.dialogVisible = true;
-      this.initImage = val;
-      setTimeout(this.handleTakePhoto, 100);
-    },
-    handleTakePhoto() {
-      if (this.status === 1) {
-        // 初始化摄像头
-        this.statusMsg = "查找设备中...";
-        this.$refs.photo.init(res => {
-          if (res) {
-            this.status = 2;
-            this.statusMsg = "拍照";
-          } else {
-            alert("未发现设备");
-          }
-        }); // 初始化摄像头
-      } else if (this.status === 2) {
-        // 拍照
-        this.$refs.photo.takePhoto((res, img) => {
-          if (res) {
-            this.statusMsg = "重新拍";
+      var temp = [];
+      var temp1 = [];
+      if(data){
+        data.forEach(item => {
+          if (item.toLowerCase().indexOf("png") != -1) {
+            temp.push(this.url + item.split(",")[0]);
+            temp1.push(item);
           }
         });
-      } else if (this.status === 3) {
-        // 重新拍
-        this.$refs.photo.init(res => {
-          if (res) {
-            this.status = 2;
-            this.statusMsg = "拍照";
-          } else {
-            alert("未发现设备");
-          }
-        }); // 初始化摄像头
+        this.initImage1 = temp;
+        this.initImage2 = temp1;
+      }
+      setTimeout(this.init, 100);
+    },
+    dataURLtoFile(dataurl, filename = "file") {
+      let arr = dataurl.split(",");
+      let mime = arr[0].match(/:(.*?);/)[1];
+      let suffix = mime.split("/")[1];
+      let bstr = atob(arr[1]);
+      let n = bstr.length;
+      let u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], `${filename}.${suffix}`, { type: mime });
+    },
+    closeMedia() {
+      if (null != this.track) {
+        this.track.stop(); //关闭摄像头
+        this.imglist = [];
       }
     },
-    uploadImage() {
-      this.dialogVisible = false;
-      this.$refs.photo.closeMedia();
-      this.$refs.photo.submitImage();
-      this.status = 1;
-    },
     handleClose(done) {
-      this.status = 1;
-      this.$refs.photo.closeMedia();
+      this.closeMedia();
       done();
     },
     currentChange(val) {
@@ -411,5 +515,33 @@ ul.upload-file li i {
 }
 .pagination-container {
   margin-top: 20px;
+}
+.wrapper {
+  height: 100%;
+  margin-right: 20px;
+  video {
+    object-fit: cover;
+    width: 100%;
+  }
+}
+.image-style {
+  position: relative;
+  margin: 0 10px 10px 0;
+}
+.el-icon-close {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  z-index: 99999;
+}
+.el-icon-close:hover {
+  cursor: pointer;
+  color: red;
+}
+.image-container {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  height: 100%;
 }
 </style>

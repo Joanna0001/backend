@@ -53,7 +53,6 @@ export default {
       width: null,
       height: null,
       imglist: [],
-      imglistTemp: [],
       url: `/DataInput/FileService?method=DownloadFile&fileid=`
     };
   },
@@ -120,15 +119,15 @@ export default {
       context2D.fillRect(0, 0, 300, 400);
       context2D.drawImage(this.video, 0, 0, 300, 400);
       let image_code = canvas.toDataURL("image/png"); //图片的base64
-
-      this.imglistTemp.push(image_code);
-      this.imglist = this.imglistTemp;
+      // var imglistTemp = []
+      this.imglist.push(image_code);
+      console.log(this.imglist)
       // this.taked = true;
-      // call(true, image_code);
+      call(true, image_code);
     },
     submitImage() {
-      var temp = []
-      
+      console.log(this.imglist)
+
       this.imglist.forEach(item => {
         var data = this.dataURLtoFile(item);
         var formData = new FormData();
@@ -137,7 +136,7 @@ export default {
         axios
           .post(`/DataInput/FileService?method=UploadFile&type=`, formData)
           .then(res => {
-            // console.log(res);
+            console.log(res);
             if(res.status == 200){
               temp.push(res.data.fileid + ',' + res.data.filename)
             }
@@ -154,11 +153,12 @@ export default {
 
         this.$emit("saveImage", temp);
       });
-
+      var temp = []
       if(this.imglist.length == 0){
         temp = this.initImage2
         this.$emit("saveImage", temp);
       }
+      // console.log(temp)
     },
     closeMedia() {
       if (null != this.track) {
