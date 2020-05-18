@@ -34,13 +34,19 @@
       </el-table-column>
       <el-table-column label="拍照" width="70" align="center">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" @click="openMedia(scope.row.imgList)" :disabled="readonly == 1">拍照</el-button>
+          <el-button
+            size="mini"
+            type="text"
+            @click="openMedia(scope.row.imgList)"
+            :disabled="readonly == 1"
+          >拍照</el-button>
         </template>
       </el-table-column>
       <el-table-column label="选择文件" align="center" width="100">
         <template slot-scope="scope">
           <el-upload
             class="upload-demo"
+            :on-preview="handlePreview"
             :action="fileUrl()"
             :on-success="uploadSuccess"
             :on-remove="removeFile"
@@ -65,7 +71,7 @@
       <el-table-column label="文件照片列表" align="center" width="110">
         <template slot-scope="scope">
           <div>
-            <ul class="upload-file" v-for="(item, index) in scope.row.fileList" :key="index">
+            <ul class="upload-file" v-for="(item, index) in scope.row.fileShowList" :key="index">
               <li>
                 <div style="cursor: pointer; display: flex; align-items: center;">
                   <a
@@ -218,6 +224,13 @@ export default {
     this.fetchData();
   },
   methods: {
+    handlePreview(file) {
+      // console.log(file)
+      var url =
+        "http://118.178.120.218:8088/DataInput/FileService?method=DownloadFile&fileid=" +
+        file.response.fileid;
+      window.location.href = url;
+    },
     init() {
       this.video = this.$refs.video;
       navigator.getUserMedia =
@@ -320,17 +333,42 @@ export default {
         this.loading = false;
         this.total = res.total;
         let data = res.rows;
+        let imgFormatList = [
+          "apng",
+          "bmp",
+          "gif",
+          "ico",
+          "cur",
+          "jpg",
+          "jpeg",
+          "jfif",
+          "pjpeg",
+          "pjp",
+          "png",
+          "svg",
+          "tif",
+          "tiff",
+          "webp"
+        ];
         for (let x = 0; x < data.length; x++) {
           if (data[x].fj) {
             this.$set(data[x], "fileList", []);
             this.$set(data[x], "imgList", []);
             this.$set(data[x], "imgShowList", []);
+            this.$set(data[x], "fileShowList", []);
             var temp = data[x].fj.split("|");
             for (let i = 0; i < temp.length; i++) {
-              if (temp[i].toLowerCase().indexOf("png") == -1) {
+              if (temp[i].toLowerCase().indexOf("file.png") == -1) {
                 data[x].fileList.push(temp[i].split("|")[0]);
               } else {
                 data[x].imgList.push(temp[i].split("|")[0]);
+              }
+            }
+            for (let i = 0; i < temp.length; i++) {
+              var format = temp[i].split(".")[1].toLowerCase()
+              if (imgFormatList.indexOf(format) == -1) {
+                data[x].fileShowList.push(temp[i].split("|")[0]);
+              } else {
                 data[x].imgShowList.push(this.url + temp[i].split(",")[0]);
               }
             }
@@ -368,18 +406,11 @@ export default {
       }
 
       var fileTemp = [];
-      console.log(this.savedImage)
-      console.log(val.imgList)
       if (this.savedImage.length > 0) {
         this.savedImage.forEach(item => {
           fileTemp.push(item);
         });
       }
-      //  else if (val.imgList) {
-      //   val.imgList.forEach(item => {
-      //     fileTemp.push(item);
-      //   });
-      // }
       if (val.fileList) {
         val.fileList.forEach(item => {
           fileTemp.push(item);
@@ -400,7 +431,7 @@ export default {
           this.$message.success("保存成功");
           this.fileList = [];
           this.imglist = [];
-          this.imgShowList = []
+          this.imgShowList = [];
           this.fetchData();
           $(".el-upload-list__item.is-success").css("display", "none");
         } else {
