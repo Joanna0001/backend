@@ -34,7 +34,7 @@
       </el-table-column>
       <el-table-column label="拍照" width="70" align="center">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" @click="openMedia(scope.row.imgList)">拍照</el-button>
+          <el-button size="mini" type="text" @click="openMedia(scope.row.imgList)" :disabled="readonly == 1">拍照</el-button>
         </template>
       </el-table-column>
       <el-table-column label="选择文件" align="center" width="100">
@@ -89,7 +89,6 @@
                 :preview-src-list="scope.row.imgShowList"
                 style="width: 40px; height: 30px;"
               ></el-image>
-              <!-- <i @click="deleteImage(index, 'list')" class="el-icon-close"></i> -->
             </div>
           </div>
         </template>
@@ -369,15 +368,18 @@ export default {
       }
 
       var fileTemp = [];
+      console.log(this.savedImage)
+      console.log(val.imgList)
       if (this.savedImage.length > 0) {
         this.savedImage.forEach(item => {
           fileTemp.push(item);
         });
-      } else if (val.imgList) {
-        val.imgList.forEach(item => {
-          fileTemp.push(item);
-        });
       }
+      //  else if (val.imgList) {
+      //   val.imgList.forEach(item => {
+      //     fileTemp.push(item);
+      //   });
+      // }
       if (val.fileList) {
         val.fileList.forEach(item => {
           fileTemp.push(item);
@@ -391,11 +393,14 @@ export default {
 
       sendData.fj = fileTemp.join("|");
 
-      console.log(sendData);
+      // console.log(sendData);
       updateItem(sendData).then(res => {
         // 新增或则修改（id不传是新增，传了是修改）
         if (res.code == 0) {
           this.$message.success("保存成功");
+          this.fileList = [];
+          this.imglist = [];
+          this.imgShowList = []
           this.fetchData();
           $(".el-upload-list__item.is-success").css("display", "none");
         } else {
