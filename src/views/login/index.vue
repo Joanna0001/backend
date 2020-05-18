@@ -22,17 +22,17 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="原件" align="center" width="130">
+      <el-table-column label="原件" align="center" width="90">
         <template slot-scope="scope">
           <el-input type="number" size="mini" v-model="scope.row.yj" :disabled="readonly == 1" />
         </template>
       </el-table-column>
-      <el-table-column label="复印件" align="center" width="130">
+      <el-table-column label="复印件" align="center" width="90">
         <template slot-scope="scope">
           <el-input type="number" size="mini" v-model="scope.row.fyj" :disabled="readonly == 1" />
         </template>
       </el-table-column>
-      <el-table-column label="拍照" width="90" align="center">
+      <el-table-column label="拍照" width="70" align="center">
         <template slot-scope="scope">
           <el-button size="mini" type="text" @click="openMedia(scope.row.imgList)">拍照</el-button>
         </template>
@@ -60,6 +60,38 @@
               </div>
             </li>
           </ul>
+        </template>
+      </el-table-column>
+      <el-table-column label="文件照片列表" align="center" width="110">
+        <template slot-scope="scope">
+          <div>
+            <ul class="upload-file" v-for="(item, index) in scope.row.fileList" :key="index">
+              <li>
+                <div style="cursor: pointer; display: flex; align-items: center;">
+                  <a
+                    :title="item.split(',')[1]"
+                    style="display: block; overflow: hidden; width: 95%; white-space: nowrap; text-overflow: ellipsis;"
+                    :href="'http://118.178.120.218:8088' + url + item.split(',')[0]"
+                    target="_blank"
+                  >{{ item.split(',')[1] }}</a>
+                  <!-- <i @click="deleteFile(index, scope.row.fileList)" class="el-icon-close" /> -->
+                </div>
+              </li>
+            </ul>
+            <div
+              v-for="(item, index) in scope.row.imgShowList"
+              :key="index + 'a'"
+              class="upload-image"
+            >
+              <el-image
+                fit="cover"
+                :src="item"
+                :preview-src-list="scope.row.imgShowList"
+                style="width: 40px; height: 30px;"
+              ></el-image>
+              <!-- <i @click="deleteImage(index, 'list')" class="el-icon-close"></i> -->
+            </div>
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="170" align="center">
@@ -163,7 +195,6 @@ export default {
       imglist: [],
       url: `/DataInput/FileService?method=DownloadFile&fileid=`,
       savedImage: [],
-      imageList: [], // 页面显示
       fileList: [], // 页面显示
       loading: true,
       dialogVisible: false,
@@ -282,6 +313,8 @@ export default {
         fyj: "",
         yj: ""
       });
+      this.fileList = [];
+      this.imglist = [];
     },
     fetchData() {
       getList(this.listQuery).then(res => {
@@ -292,12 +325,14 @@ export default {
           if (data[x].fj) {
             this.$set(data[x], "fileList", []);
             this.$set(data[x], "imgList", []);
+            this.$set(data[x], "imgShowList", []);
             var temp = data[x].fj.split("|");
             for (let i = 0; i < temp.length; i++) {
               if (temp[i].toLowerCase().indexOf("png") == -1) {
                 data[x].fileList.push(temp[i].split("|")[0]);
               } else {
                 data[x].imgList.push(temp[i].split("|")[0]);
+                data[x].imgShowList.push(this.url + temp[i].split(",")[0]);
               }
             }
           }
@@ -396,7 +431,6 @@ export default {
       }
     },
     uploadSuccess(file, fileList) {
-      console.log(file);
       this.fileList.push(file);
     },
     removeFile(file, fileList) {
@@ -437,8 +471,8 @@ export default {
       }
     },
     handleClose(done) {
-      this.closeMedia();
       done();
+      this.closeMedia();
     },
     currentChange(val) {
       this.listQuery.page = val;
@@ -452,6 +486,14 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.upload-image i {
+  display: none;
+}
+.upload-image:hover i {
+  display: inline;
+  color: red;
+  cursor: pointer;
+}
 .file-success {
   display: none;
 }
