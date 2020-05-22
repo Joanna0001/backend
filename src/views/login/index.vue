@@ -113,7 +113,7 @@
             size="mini"
             plain
             @click="deleteHandle(scope.row, scope.$index)"
-            :disabled="readonly == 1"
+            :disabled="readonly == 1 || scope.row.ismust == 1"
           >删除</el-button>
         </template>
       </el-table-column>
@@ -333,22 +333,13 @@ export default {
         this.loading = false;
         this.total = res.total;
         let data = res.rows;
+        // "tif", "tiff", "svg", "webp", "bmp", "apng", "ico", "cur", "pjp", "pjpeg",
         let imgFormatList = [
-          "apng",
-          "bmp",
           "gif",
-          "ico",
-          "cur",
           "jpg",
           "jpeg",
           "jfif",
-          "pjpeg",
-          "pjp",
-          "png",
-          "svg",
-          "tif",
-          "tiff",
-          "webp"
+          "png"
         ];
         for (let x = 0; x < data.length; x++) {
           if (data[x].fj) {
@@ -613,6 +604,7 @@ ul.upload-file li i {
 .image-style {
   position: relative;
   margin: 0 10px 10px 0;
+  height: 200px;
 }
 .image-container .el-icon-close {
   position: absolute;
@@ -620,7 +612,7 @@ ul.upload-file li i {
   top: 5px;
   z-index: 99999;
 }
-.image-container .el-icon-close:hover {
+.image-container .image-style:hover .el-icon-close {
   cursor: pointer;
   color: red;
 }
