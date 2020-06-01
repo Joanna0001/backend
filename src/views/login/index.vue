@@ -11,15 +11,21 @@
       :header-cell-style="{background:'#eef1f6',color:'#606266'}"
       size="mini"
     >
-      <el-table-column type="index" label="序号" width="60" align="center"></el-table-column>
+      <el-table-column label="序号" width="60" align="center">
+        <template slot-scope="scope">
+          <span style="color: red;">{{ scope.row.mustin == '1' ? '*' : '' }}</span>
+          {{scope.$index + 1}}
+        </template>
+      </el-table-column>
       <el-table-column header-align="center" label="内容" min-width="300" align="left">
         <template slot-scope="scope">
           <el-input
             size="mini"
             v-model="scope.row.bz"
             :title="scope.row.bz"
-            :disabled="readonly == 1"
+            :disabled="readonly == 1 || scope.row.ismust == 1"
           />
+          <div>{{ scope.row.msginfo }}</div>
         </template>
       </el-table-column>
       <el-table-column label="原件" align="center" width="90">
@@ -34,12 +40,25 @@
       </el-table-column>
       <el-table-column label="拍照" width="70" align="center">
         <template slot-scope="scope">
-          <el-button
-            size="mini"
-            type="text"
-            @click="openMedia(scope.row.imgList)"
-            :disabled="readonly == 1"
-          >拍照</el-button>
+          <div>
+            <el-button
+              v-if="isMobile == 0"
+              size="mini"
+              type="text"
+              @click="openMedia(scope.row.imgList)"
+              :disabled="readonly == 1"
+            >拍照</el-button>
+            <el-upload
+              accept="image/*"
+              v-else-if="isMobile == 1"
+              class="upload-demo"
+              :action="fileUrl()"
+              :on-success="uploadMobileImage"
+              :on-remove="removeMobileImage"
+            >
+              <el-button size="mini" type="text" :disabled="readonly == 1">拍照</el-button>
+            </el-upload>
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="选择文件" align="center" width="100">
@@ -80,19 +99,18 @@
                     :href="'http://118.178.120.218:8088' + url + item.split(',')[0]"
                     target="_blank"
                   >{{ item.split(',')[1] }}</a>
-                  <!-- <i @click="deleteFile(index, scope.row.fileList)" class="el-icon-close" /> -->
                 </div>
               </li>
             </ul>
             <div
               v-for="(item, index) in scope.row.imgShowList"
               :key="index + 'a'"
-              class="upload-image"
+              class="demo-image__preview"
             >
               <el-image
                 fit="cover"
-                :src="item"
-                :preview-src-list="scope.row.imgShowList"
+                :src="item + '&type=small'"
+                :preview-src-list="getSrcList(index, scope.row.imgShowList)"
                 style="width: 40px; height: 30px;"
               ></el-image>
             </div>
@@ -181,6 +199,7 @@
 </template>
 
 <script>
+import ElImageViewer from 'element-ui/packages/image/src/image-viewer'
 import { getList, deleteItem, updateItem } from "@/api/table";
 import $ from "jquery";
 import axios from "axios";
@@ -188,8 +207,11 @@ import axios from "axios";
 export default {
   inject: ["reload"],
   name: "Dashboard",
+  components: { ElImageViewer },
   data() {
     return {
+      showViewer: false,
+      mobileImageList: [],
       initImage1: [], // 能显示照片的url格式
       initImage2: [], // 保存传到接口的fileid格式
       video: null,
@@ -211,10 +233,17 @@ export default {
         serialno: ""
       },
       tableData: [],
+      isMobile: null,
       readonly: 1 // 只读1
     };
   },
   created() {
+    if (this._isMobile()) {
+      this.isMobile = 1; // 是手机端
+    } else {
+      this.isMobile = 0; // 是pc端
+    }
+
     var path = location.search;
     // var path = '/index.html?readonly=0&fxbaid=dc85adf45dfc4894a97de4bf16c5ce29&serialno=20200513001&typebh='
     var pathArr = path.split("&");
@@ -224,6 +253,15 @@ export default {
     this.fetchData();
   },
   methods: {
+    getSrcList(index, urls){
+      return urls.slice(index).concat(urls.slice(0,index))
+    },
+    _isMobile() {
+      let flag = navigator.userAgent.match(
+        /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
+      );
+      return flag;
+    },
     handlePreview(file) {
       // console.log(file)
       var url =
@@ -248,7 +286,6 @@ export default {
               this.video.srcObject = stream; // chrome版本>70
             }
             this.video.onloadedmetadata = e => {
-              // console.log(e);
               this.video.play();
             };
           },
@@ -334,42 +371,51 @@ export default {
         this.total = res.total;
         let data = res.rows;
         // "tif", "tiff", "svg", "webp", "bmp", "apng", "ico", "cur", "pjp", "pjpeg",
-        let imgFormatList = [
-          "gif",
-          "jpg",
-          "jpeg",
-          "jfif",
-          "png"
-        ];
+        let imgFormatList = ["gif", "jpg", "jpeg", "jfif", "png"];
         for (let x = 0; x < data.length; x++) {
           if (data[x].fj) {
             this.$set(data[x], "fileList", []);
             this.$set(data[x], "imgList", []);
             this.$set(data[x], "imgShowList", []);
             this.$set(data[x], "fileShowList", []);
+            // this.$set(data[x], "smallImgShowList", []);
             var temp = data[x].fj.split("|");
             for (let i = 0; i < temp.length; i++) {
-              if (temp[i].toLowerCase().indexOf("file.png") == -1) {
+              if (
+                temp[i].toLowerCase().indexOf("file.png") == -1 &&
+                temp[i].toLowerCase().indexOf("image.jpg") == -1
+              ) {
                 data[x].fileList.push(temp[i].split("|")[0]);
               } else {
                 data[x].imgList.push(temp[i].split("|")[0]);
               }
             }
             for (let i = 0; i < temp.length; i++) {
-              var format = temp[i].split(".")[1].toLowerCase()
+              var format = temp[i].split(".")[1].toLowerCase();
               if (imgFormatList.indexOf(format) == -1) {
                 data[x].fileShowList.push(temp[i].split("|")[0]);
               } else {
                 data[x].imgShowList.push(this.url + temp[i].split(",")[0]);
+                // data[x].smallImgShowList.push(
+                //   this.url + temp[i].split(",")[0] + "&type=small"
+                // );
               }
             }
           }
         }
-        // console.log(data)
+        // console.log(data);
         this.tableData = data;
       });
     },
     saveHandle(val) {
+      if (!val.yj || val.yj < 0) {
+        this.$message.warning("原件不能为空，且最小为0");
+        return;
+      }
+      if (!val.fyj || val.fyj < 0) {
+        this.$message.warning("复印件不能为空，且最小为0");
+        return;
+      }
       var sendData = {};
       if (val.recid) {
         // 修改
@@ -397,11 +443,25 @@ export default {
       }
 
       var fileTemp = [];
-      if (this.savedImage.length > 0) {
-        this.savedImage.forEach(item => {
-          fileTemp.push(item);
-        });
+      if (!this.isMobile) {
+        if (this.savedImage.length > 0) {
+          this.savedImage.forEach(item => {
+            fileTemp.push(item);
+          });
+        }
+      } else {
+        if (this.mobileImageList.length > 0) {
+          this.mobileImageList.forEach(item => {
+            fileTemp.push(item.fileid + "," + item.filename);
+          });
+        }
+        if (val.imgList) {
+          val.imgList.forEach(item => {
+            fileTemp.push(item);
+          });
+        }
       }
+
       if (val.fileList) {
         val.fileList.forEach(item => {
           fileTemp.push(item);
@@ -415,7 +475,11 @@ export default {
 
       sendData.fj = fileTemp.join("|");
 
-      // console.log(sendData);
+      if (!sendData.fj && val.mustin == "1") {
+        this.$message.warning("请至少上传一份文件或照片");
+        return;
+      }
+      // console.log(sendData)
       updateItem(sendData).then(res => {
         // 新增或则修改（id不传是新增，传了是修改）
         if (res.code == 0) {
@@ -423,8 +487,8 @@ export default {
           this.fileList = [];
           this.imglist = [];
           this.imgShowList = [];
-          this.fetchData();
           $(".el-upload-list__item.is-success").css("display", "none");
+          this.fetchData();
         } else {
           this.$message.error(res.msg);
         }
@@ -457,8 +521,14 @@ export default {
         this.tableData.splice(index, 1);
       }
     },
+    uploadMobileImage(file, fileList) {
+      this.mobileImageList.push(file);
+    },
     uploadSuccess(file, fileList) {
       this.fileList.push(file);
+    },
+    removeMobileImage(file, fileList) {
+      this.mobileImageList = fileList;
     },
     removeFile(file, fileList) {
       this.fileList = fileList;
@@ -469,7 +539,10 @@ export default {
       var temp1 = [];
       if (data) {
         data.forEach(item => {
-          if (item.toLowerCase().indexOf("png") != -1) {
+          if (
+            item.toLowerCase().indexOf("file.png") != -1 ||
+            item.toLowerCase().indexOf("image.jpg") != -1
+          ) {
             temp.push(this.url + item.split(",")[0]);
             temp1.push(item);
           }
