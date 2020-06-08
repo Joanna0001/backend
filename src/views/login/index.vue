@@ -164,6 +164,7 @@
           <el-col :span="12" align="center" class="image-container">
             <canvas ref="canvas" v-show="taked" width="300" height="400"></canvas>
             <div v-for="(item, index) in initImage1" :key="index + 'a'" class="image-style">
+              <!--  + '?x-oss-process=image/resize,w_150,limit_0' -->
               <el-image
                 fit="cover"
                 :src="item"
@@ -199,7 +200,7 @@
 </template>
 
 <script>
-import ElImageViewer from 'element-ui/packages/image/src/image-viewer'
+import ElImageViewer from "element-ui/packages/image/src/image-viewer";
 import { getList, deleteItem, updateItem } from "@/api/table";
 import $ from "jquery";
 import axios from "axios";
@@ -228,7 +229,7 @@ export default {
       total: 0,
       listQuery: {
         page: 1,
-        rows: 10,
+        rows: 20,
         fxbaid: "",
         serialno: ""
       },
@@ -250,11 +251,12 @@ export default {
     this.readonly = pathArr[0].split("=")[1];
     this.listQuery[pathArr[1].split("=")[0]] = pathArr[1].split("=")[1];
     this.listQuery[pathArr[2].split("=")[0]] = pathArr[2].split("=")[1];
+    this.listQuery[pathArr[3].split("=")[0]] = pathArr[3].split("=")[1];
     this.fetchData();
   },
   methods: {
-    getSrcList(index, urls){
-      return urls.slice(index).concat(urls.slice(0,index))
+    getSrcList(index, urls) {
+      return urls.slice(index).concat(urls.slice(0, index));
     },
     _isMobile() {
       let flag = navigator.userAgent.match(
@@ -378,7 +380,6 @@ export default {
             this.$set(data[x], "imgList", []);
             this.$set(data[x], "imgShowList", []);
             this.$set(data[x], "fileShowList", []);
-            // this.$set(data[x], "smallImgShowList", []);
             var temp = data[x].fj.split("|");
             for (let i = 0; i < temp.length; i++) {
               if (
@@ -396,9 +397,6 @@ export default {
                 data[x].fileShowList.push(temp[i].split("|")[0]);
               } else {
                 data[x].imgShowList.push(this.url + temp[i].split(",")[0]);
-                // data[x].smallImgShowList.push(
-                //   this.url + temp[i].split(",")[0] + "&type=small"
-                // );
               }
             }
           }
@@ -408,12 +406,20 @@ export default {
       });
     },
     saveHandle(val) {
-      if (!val.yj || val.yj < 0) {
-        this.$message.warning("原件不能为空，且最小为0");
+      if (!val.yj) {
+        this.$message.warning("请输入原件数量");
         return;
       }
-      if (!val.fyj || val.fyj < 0) {
-        this.$message.warning("复印件不能为空，且最小为0");
+      if (val.yj < 0) {
+        this.$message.warning("原件数量最小为0");
+        return;
+      }
+      if (!val.fyj) {
+        this.$message.warning("请输入复印件数量");
+        return;
+      }
+      if (val.fyj < 0) {
+        this.$message.warning("复印件数量最小为0");
         return;
       }
       var sendData = {};
@@ -422,6 +428,7 @@ export default {
         sendData = {
           fxbaid: val.fxbaid,
           serialno: val.serialno,
+          typebh: val.typebh,
           id: val.recid,
           lrrxm: val.lrrxm,
           lrrzh: val.lrrzh,
@@ -436,6 +443,7 @@ export default {
         sendData = {
           serialno: this.listQuery.serialno,
           fxbaid: this.listQuery.fxbaid,
+          typebh: this.listQuery.typebh,
           bz: val.bz,
           yj: val.yj,
           fyj: val.fyj
@@ -443,13 +451,13 @@ export default {
       }
 
       var fileTemp = [];
-      if (!this.isMobile) {
+      if (this.isMobile == 0) {  // pc
         if (this.savedImage.length > 0) {
           this.savedImage.forEach(item => {
             fileTemp.push(item);
           });
         }
-      } else {
+      } else if (this.isMobile == 1) {  // 手机端
         if (this.mobileImageList.length > 0) {
           this.mobileImageList.forEach(item => {
             fileTemp.push(item.fileid + "," + item.filename);
@@ -487,6 +495,7 @@ export default {
           this.fileList = [];
           this.imglist = [];
           this.imgShowList = [];
+          this.mobileImageList = [];
           $(".el-upload-list__item.is-success").css("display", "none");
           this.fetchData();
         } else {
@@ -680,14 +689,17 @@ ul.upload-file li i {
   height: 200px;
 }
 .image-container .el-icon-close {
+  display: none;
   position: absolute;
   right: 5px;
   top: 5px;
   z-index: 99999;
 }
 .image-container .image-style:hover .el-icon-close {
+  display: inline;
   cursor: pointer;
   color: red;
+  z-index: 99;
 }
 .image-container {
   display: flex;
