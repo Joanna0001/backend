@@ -30,12 +30,12 @@
       </el-table-column>
       <el-table-column label="原件" align="center" width="90">
         <template slot-scope="scope">
-          <el-input type="number" size="mini" v-model="scope.row.yj" :disabled="readonly == 1" />
+          <el-input type="number" size="mini" v-model="scope.row.yj" :disabled="readonly == 1" min="0" />
         </template>
       </el-table-column>
       <el-table-column label="复印件" align="center" width="90">
         <template slot-scope="scope">
-          <el-input type="number" size="mini" v-model="scope.row.fyj" :disabled="readonly == 1" />
+          <el-input type="number" size="mini" v-model="scope.row.fyj" :disabled="readonly == 1" min="0" />
         </template>
       </el-table-column>
       <el-table-column label="拍照" width="70" align="center">
